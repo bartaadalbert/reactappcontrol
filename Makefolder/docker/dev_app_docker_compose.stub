@@ -14,7 +14,6 @@ services:
     env_file:
       - ${DOCKER_APP_ENV}
     depends_on:
-      - stg_{{APP_IMAGE_NAME}}
       - ${REDIS_IMAGE_NAME}
     restart: always
 
