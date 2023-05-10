@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  stg_dev_app_bober:
+    build:
+      context: .
+      dockerfile: ${APP_DOCKERFILE_STAGING}
+    image: stg_${APP_IMAGE_NAME}:latest
+    container_name: stg_${APP_IMAGE_NAME}
+    hostname: stg_${APP_IMAGE_NAME}
+    command: ${REACT_COMMAND_STAGING}
+    ports:
+      - ${PORT_APP_STAGING}
+    env_file:
+      - ${DOCKER_APP_ENV_STAGING}
+    restart: "no"
+
+
+networks: 
+  default: 
+    external: 
+      name: ${DOCKER_NETWORK}

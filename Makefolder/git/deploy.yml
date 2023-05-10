@@ -1,0 +1,59 @@
+name: Deploy Bober App
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+    
+    - name: Extract repository name
+        id: extract_repo
+        run: echo "::set-output name=repo_name::$(echo $GITHUB_REPOSITORY | cut -d '/' -f 2)"
+
+     - name: Install SSH client
+        run: sudo apt-get install -y ssh
+
+    - name: Set variables based on branch
+        id: set_vars
+        run: |
+          if [ "${{ github.ref_name }}" = "main" ]; then
+            echo "::set-output name=ssh_user::${{ secrets.MAIN_SSH_USER }}"
+            echo "::set-output name=deploy_key::${{ secrets.MAIN_DEPLOY_KEY }}"
+            echo "::set-output name=remote_host::${{ secrets.MAIN_REMOTE_HOST }}"
+            echo "::set-output name=remote_path::${{ secrets.MAIN_REMOTE_PATH }}"
+            echo "::set-output name=remote_context::${{ secrets.MAIN_REMOTE_CONTEXT }}"
+          else
+            echo "::set-output name=ssh_user::${{ secrets.DEVELOP_SSH_USER }}"
+            echo "::set-output name=deploy_key::${{ secrets.DEVELOP_DEPLOY_KEY }}"
+            echo "::set-output name=remote_host::${{ secrets.DEVELOP_REMOTE_HOST }}"
+            echo "::set-output name=remote_path::${{ secrets.DEVELOP_REMOTE_PATH }}"
+            echo "::set-output name=remote_context::${{ secrets.DEVELOP_REMOTE_CONTEXT }}"
+          fi
+
+    - name: Build and run Docker containers
+        env:
+          DEPLOY_KEY: ${{ steps.set_vars.outputs.deploy_key }}
+          REMOTE_HOST: ${{ steps.set_vars.outputs.remote_host }}
+          REMOTE_USER: ${{ steps.set_vars.outputs.ssh_user }}
+          REMOTE_PATH: ${{ steps.set_vars.outputs.remote_path}}
+          REMOTE_CONTEXT: ${{ steps.set_vars.outputs.remote_context}}
+          BRANCH_NAME: ${{ github.ref_name }}
+          REPO_NAME: ${{ steps.extract_repo.outputs.repo_name }}
+      run: |
+        echo "$DEPLOY_KEY" > deploy_key
+        chmod 600 deploy_key
+        rsync -azP -e "ssh -i deploy_key" --exclude '.git' --exclude-from '.rsyncignore' . $REMOTE_USER@$REMOTE_HOST:$REMOTE_PATH
+        if [ "${{ github.ref_name }}" = "main" ]; then
+          ssh -i deploy_key $REMOTE_USER@$REMOTE_HOST "cd $REMOTE_PATH && docker context use $REMOTE_CONTEXT && make rebuild DEV_MODE=0"
+        elif [ "${{ github.ref_name }}" = "develop" ]; then
+          ssh -i deploy_key $REMOTE_USER@$REMOTE_HOST "cd $REMOTE_PATH && docker context use $REMOTE_CONTEXT && make rebuild "
+        fi
+        rm -f deploy_key
