@@ -38,7 +38,7 @@ To use the Makefile commands, open a terminal and navigate to the project root d
 - `make rebuild`: Build Docker image with options for production or development.
 - `make deploy_stg`: Build staging Docker image.
 - `make deploy`: Deploy the server and manage images for smooth transitions.
-- `make init_git`: Initialize Git repository.
+- `make git_init`: Initialize Git repository.
 - `make push_image`: Push Docker image to the desired repository.
 - `make create_context`: Configure Docker context settings.
 - `make create_network`: Configure Docker network settings.
